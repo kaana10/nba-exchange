@@ -31,7 +31,18 @@ export async function POST(req: Request) {
 
     await createSession(user.id);
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (e) {
+    console.error("[login]", e);
+    const message = e instanceof Error ? e.message : String(e);
+    if (message.includes("Missing JWT_SECRET")) {
+      return NextResponse.json(
+        { error: "Set JWT_SECRET in your .env file (any long random string)." },
+        { status: 500 },
+      );
+    }
+    if (process.env.NODE_ENV === "development") {
+      return NextResponse.json({ error: `Login failed: ${message}` }, { status: 500 });
+    }
     return NextResponse.json({ error: "Login failed" }, { status: 500 });
   }
 }
