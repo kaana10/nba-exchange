@@ -42,9 +42,14 @@ Open `http://localhost:3000`.
 ### Deploying to Vercel
 
 - **Root Directory**: set the Vercel project **Root Directory** to `nba-exchange` if the repo root is the parent folder (so `vercel.json` and Next.js are picked up).
-- **Environment Variables**: add `DATABASE_URL` and `JWT_SECRET` for **Production** (and Preview if you use preview deploys). Local `.env` is not uploaded to Vercel.
-- **Database migrations**: `vercel.json` sets `buildCommand` to `prisma migrate deploy && next build`. Without that step, production often has no tables and signup returns a 500.
-- **Hosted Postgres (Neon, Supabase, etc.)**: use the connection string they give for **serverless / pooled** access where applicable; if migrations fail in build, check the provider’s docs for a separate **direct** URL for `prisma migrate`.
+- **Environment Variables** (for **Production** and **Preview** if you use previews):
+  - `JWT_SECRET` — required at runtime.
+  - `DATABASE_URL` — required at **runtime** (use your host’s normal “app” / pooled URL if they give one, e.g. Neon’s Prisma or pooled string).
+  - **Migrations during build**: `vercel.json` runs `prisma migrate deploy` before `next build`. That step needs a URL Prisma can migrate with:
+    - If migrate fails with pooler / PgBouncer errors, add a **direct** (non-pooling) URL as **`DIRECT_URL`** in Vercel (Neon: “non-pooling” / direct; Supabase: often a “direct” or transaction URL). `prisma.config.ts` uses `DIRECT_URL` first, then `POSTGRES_URL_NON_POOLING`, then `DATABASE_URL`.
+  - Vars must exist for the environment that is building. If the build still says it cannot see the DB, open the deployment log and read the Prisma error code (e.g. P1001 = cannot reach DB).
+- **Database migrations**: `vercel.json` sets `buildCommand` to `prisma migrate deploy && next build`.
+- **Node**: this project expects **Node ≥ 20.19** (see `package.json` `engines`), matching Prisma 7. In Vercel → Settings → General, set the Node.js Version to **22.x** (or 20.19+) if builds fail for that reason.
 
 ### Notes
 

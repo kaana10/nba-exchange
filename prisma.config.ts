@@ -3,12 +3,21 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+/** Used only by Prisma CLI (`migrate`, `db`, etc.). Runtime uses `DATABASE_URL` in `src/server/db.ts`. */
+function migrateDatabaseUrl(): string {
+  const u =
+    process.env["DIRECT_URL"] ??
+    process.env["POSTGRES_URL_NON_POOLING"] ??
+    process.env["DATABASE_URL"];
+  return (u ?? "").trim();
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: migrateDatabaseUrl(),
   },
 });
