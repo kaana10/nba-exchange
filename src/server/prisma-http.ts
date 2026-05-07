@@ -18,7 +18,8 @@ export function mapPrismaToAuthError(e: unknown): { status: number; error: strin
     if (e.code === "P1001" || e.code === "P1000" || e.code === "P1017") {
       return {
         status: 503,
-        error: "Cannot reach database. Check DATABASE_URL on Vercel (host, SSL, pooled vs direct URL).",
+        error:
+          "Cannot reach database from Vercel. Fix DATABASE_URL: must be a public Postgres URL (not localhost), include SSL if your host requires it (e.g. ?sslmode=require), use Neon/Supabase pooled URL for the app. Wake the DB if it auto-paused. Migrations use DIRECT_URL separately.",
       };
     }
     return { status: 500, error: `Database error (${e.code})` };
