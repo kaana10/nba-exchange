@@ -19,7 +19,7 @@ npm install
 
 2) Set env
 
-- Set `DATABASE_URL` (Postgres connection string).
+- `DATABASE_URL="file:./dev.db"` (SQLite file next to the project — no Postgres server).
 - Set `JWT_SECRET` (any long random string).
 - Set `GEMINI_API_KEY` if you want to later plug sentiment/news into pricing.
 
