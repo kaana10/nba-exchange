@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  cashCents    Int       @default(1000000) // $10,000.00 starting cash for paper trading
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  holdings Holding[]
+  trades   Trade[]
+}
+
+model Player {
+  /// External NBA player id (e.g. from stats provider)
+  id        Int      @id
+  firstName String
+  lastName  String
+  position  String?
+  teamAbbr  String?
+  brId      String?  // Basketball-Reference player slug, e.g. "hardeja01"
+  isActive  Boolean  @default(true)
+  isPlayoff Boolean  @default(false) // restrict exchange universe to playoff players
+  lastGamelogSyncAt DateTime?
+  manualPriceCents Int? // fallback “legit-looking” price when data unavailable
+  legacyScore Int    @default(10) // 0-100 popularity/legacy value floor
+
+  prices   PlayerPrice[]
+  stats    PlayerStat[]
+  games    PlayerGame[]
+  holdings Holding[]
+  trades   Trade[]
+
+  @@index([brId])
+}
+
+model PlayerGame {
+  id           String   @id @default(cuid())
+  playerId     Int
+  seasonEndYear Int
+  gameNumber   Int
+  gameDate     DateTime
+  gameScore    Float
+  avgGameScore Float
+  createdAt    DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, seasonEndYear, gameNumber])
+  @@index([playerId, seasonEndYear, gameDate])
+}
+
+model PlayerStat {
+  id        String   @id @default(cuid())
+  playerId  Int
+  season    Int      @default(0) // e.g. 2025 for 2025-26; 0 = no season (career/unknown)
+  scope     String   @default("season") // "season" | "career"
+  gameScore Float?
+  tsPct     Float?   // True Shooting as fraction (e.g. 0.58)
+  usageRate Float?   // Usage as fraction (e.g. 0.30)
+  games     Int?
+  minutes   Float?
+  pts       Float?
+  reb       Float?
+  ast       Float?
+  stl       Float?
+  blk       Float?
+  tov       Float?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, updatedAt])
+  @@unique([playerId, season, scope])
+}
+
+model PlayerPrice {
+  id         String   @id @default(cuid())
+  playerId   Int
+  priceCents Int
+  source     String   @default("engine_v1")
+  createdAt  DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt])
+}
+
+model Holding {
+  id       String @id @default(cuid())
+  userId   String
+  playerId Int
+  shares   Int    @default(0)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, playerId])
+}
+
+model Trade {
+  id         String    @id @default(cuid())
+  userId     String
+  playerId   Int
+  side       TradeSide
+  shares     Int
+  priceCents Int
+  createdAt  DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([playerId, createdAt])
+}
