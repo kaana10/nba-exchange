@@ -39,10 +39,6 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-### Notes on hosting (optional)
-
-If you deploy elsewhere later, run migrations against that database (`npx prisma migrate deploy`) with the same env vars as production, then build/start the app there.
-
 ### Notes
 
 - **Seeding**: the first time you hit the market endpoints, a curated list of players is auto-seeded.

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { messageFromFailedResponse } from "@/lib/http-error";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,12 +20,11 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        setError(await messageFromFailedResponse(res));
+        const j = await res.json().catch(() => ({}));
+        setError((j as { error?: string }).error ?? "Login failed");
         return;
       }
       window.location.href = "/market";
-    } catch {
-      setError("Could not reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -87,4 +85,3 @@ export default function LoginPage() {
     </main>
   );
 }
-

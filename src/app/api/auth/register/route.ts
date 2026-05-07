@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { applySessionCookie, hashPassword } from "@/server/auth";
-import { mapPrismaToAuthError } from "@/server/prisma-http";
+import { createSession, hashPassword } from "@/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,28 +29,13 @@ export async function POST(req: Request) {
       data: { email, passwordHash },
       select: { id: true },
     });
-    const res = NextResponse.json({ ok: true });
-    await applySessionCookie(res, user.id);
-    return res;
+    await createSession(user.id);
+    return NextResponse.json({ ok: true });
   } catch (e) {
-    const prismaErr = mapPrismaToAuthError(e);
-    if (prismaErr) {
-      return NextResponse.json({ error: prismaErr.error }, { status: prismaErr.status });
-    }
     const message = e instanceof Error ? e.message : "";
     if (message.includes("Unique constraint failed") || message.includes("P2002")) {
       return NextResponse.json({ error: "Email already in use" }, { status: 409 });
     }
-    if (message.includes("Missing JWT_SECRET")) {
-      return NextResponse.json({ error: "Server misconfigured (JWT_SECRET missing)" }, { status: 500 });
-    }
-    if (message.includes("DATABASE_URL") || message.includes("connectionString")) {
-      return NextResponse.json({ error: "Server misconfigured (DATABASE_URL missing)" }, { status: 500 });
-    }
-    if (message.includes("does not exist") || message.includes("P2021")) {
-      return NextResponse.json({ error: "Database not migrated (missing tables)" }, { status: 500 });
-    }
     return NextResponse.json({ error: "Registration failed" }, { status: 500 });
   }
 }
-
