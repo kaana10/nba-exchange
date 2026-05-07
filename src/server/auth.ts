@@ -1,8 +1,16 @@
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
+import type { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const SESSION_COOKIE = "nbaex_session";
+
+const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+};
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
@@ -18,28 +26,26 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(userId: string) {
+/**
+ * Set session cookie on the Route Handler response. Prefer this over `cookies().set`
+ * when returning `NextResponse`, so `Set-Cookie` is reliably applied in production.
+ */
+export async function applySessionCookie(res: NextResponse, userId: string) {
   const token = await new SignJWT({ sub: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
     .sign(getJwtSecret());
 
-  (await cookies()).set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+  res.cookies.set(SESSION_COOKIE, token, {
+    ...SESSION_COOKIE_OPTIONS,
     maxAge: 60 * 60 * 24 * 30,
   });
 }
 
-export async function clearSession() {
-  (await cookies()).set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+export function clearSessionCookie(res: NextResponse) {
+  res.cookies.set(SESSION_COOKIE, "", {
+    ...SESSION_COOKIE_OPTIONS,
     maxAge: 0,
   });
 }

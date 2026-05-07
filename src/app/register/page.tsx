@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { messageFromFailedResponse } from "@/lib/http-error";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -20,11 +21,12 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setError(j.error ?? "Sign up failed");
+        setError(await messageFromFailedResponse(res));
         return;
       }
       window.location.href = "/market";
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
